@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>計算結果</h1>
+<div class="card">
+    <h3>{{ data.step_name }}</h3>
+    <p>{{ data.result_message }}</p>
+    <pre>{{ data.result }}</pre>
+</div>
+<a href="/" class="btn">返回儀表板</a>
+{% endblock %}

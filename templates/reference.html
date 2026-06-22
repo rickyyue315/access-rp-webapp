@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ data.page_title }}</h1>
+<div class="card">
+    <h3>新增</h3>
+    <form method="POST" class="form-inline">
+        {% for f in data.fields %}
+        <input type="text" name="{{ f.name }}" placeholder="{{ f.label }}" required>
+        {% endfor %}
+        <button type="submit" class="btn">儲存</button>
+    </form>
+</div>
+<table class="table">
+    <tr>{% for c in data.columns %}<th>{{ c }}</th>{% endfor %}</tr>
+    {% for r in data.rows %}
+    <tr>{% for c in data.columns %}<td>{{ r[c] or '' }}</td>{% endfor %}</tr>
+    {% endfor %}
+</table>
+<a href="/" class="btn btn-secondary">返回</a>
+{% endblock %}

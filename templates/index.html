@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>補貨參數計算系統 - 儀表板</h1>
+<div class="stats-grid">
+    <div class="stat-card"><h3>商品總數</h3><p class="stat-number">{{ data.total_articles }}</p></div>
+    <div class="stat-card"><h3>問題交易</h3><p class="stat-number">{{ data.problem_count }}</p></div>
+    <div class="stat-card"><h3>MOQ已檢查</h3><p class="stat-number">{{ data.moq_checked }}</p></div>
+    <div class="stat-card"><h3>理想庫存已套用</h3><p class="stat-number">{{ data.ideal_stock_applied }}</p></div>
+    <div class="stat-card"><h3>店舖數量</h3><p class="stat-number">{{ data.shop_count }}</p></div>
+</div>
+
+<h2>RP類型統計</h2>
+<table class="table"><tr><th>RP類型</th><th>數量</th></tr>
+{% for r in data.by_rp_type %}<tr><td>{{ r.rp_type }}</td><td>{{ r.c }}</td></tr>{% endfor %}
+</table>
+
+<h2>新RP類型統計</h2>
+<table class="table"><tr><th>新RP類型</th><th>數量</th></tr>
+{% for r in data.by_new_rp_type %}<tr><td>{{ r.new_rp_type }}</td><td>{{ r.c }}</td></tr>{% endfor %}
+</table>
+{% endblock %}

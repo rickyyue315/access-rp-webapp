@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>最終結果</h1>
+<div class="card">
+    <form method="GET" class="filter-form">
+        <input type="text" name="site" placeholder="Site篩選" value="{{ data.filters.site }}">
+        <input type="text" name="article" placeholder="商品搜尋" value="{{ data.filters.article }}">
+        <select name="rp_type">
+            <option value="">全部RP類型</option>
+            <option value="RF" {% if data.filters.rp_type == 'RF' %}selected{% endif %}>RF</option>
+            <option value="ND" {% if data.filters.rp_type == 'ND' %}selected{% endif %}>ND</option>
+        </select>
+        <button type="submit" class="btn">搜尋</button>
+        <a href="/final-result/export" class="btn btn-secondary">匯出CSV</a>
+    </form>
+</div>
+<table class="table table-sm">
+    <tr><th>Site</th><th>Article</th><th>描述</th><th>RP</th><th>安全庫存</th><th>新RP</th><th>新安全庫存</th><th>新ReOrder</th><th>MOQ</th><th>理想庫存</th><th>更新</th></tr>
+    {% for r in data.rows %}
+    <tr>
+        <form action="/final-result/update/{{ r.id }}" method="POST">
+        <td>{{ r.site }}</td><td>{{ r.article }}</td><td class="truncate">{{ r.article_description }}</td>
+        <td>{{ r.rp_type }}</td><td>{{ r.safety_stock }}</td>
+        <td><input type="text" name="new_rp_type" value="{{ r.new_rp_type or '' }}" size="3"></td>
+        <td><input type="number" name="new_safety_qty" value="{{ r.new_safety_qty or 0 }}"></td>
+        <td><input type="number" name="new_reorder_point" value="{{ r.new_reorder_point or 0 }}"></td>
+        <td>{{ '✓' if r.moq_checked else '✗' }}</td>
+        <td>{{ '✓' if r.ideal_stock_applied else '✗' }}</td>
+        <td><button type="submit" class="btn btn-sm">更新</button></td>
+        </form>
+    </tr>
+    {% endfor %}
+</table>
+{% if data.total_pages > 1 %}
+<div class="pagination">
+    {% if data.page > 1 %}<a href="?page={{ data.page-1 }}&site={{ data.filters.site }}&article={{ data.filters.article }}&rp_type={{ data.filters.rp_type }}">上一頁</a>{% endif %}
+    <span>第 {{ data.page }} / {{ data.total_pages }} 頁 ({{ data.total_rows }} 筆)</span>
+    {% if data.page < data.total_pages %}<a href="?page={{ data.page+1 }}&site={{ data.filters.site }}&article={{ data.filters.article }}&rp_type={{ data.filters.rp_type }}">下一頁</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

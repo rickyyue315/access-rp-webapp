@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if title %}{{ title }}{% else %}RP參數計算系統{% endif %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="navbar-brand">RP參數計算系統</a>
+            <ul class="nav-menu">
+                <li><a href="/">儀表板</a></li>
+                <li class="dropdown">
+                    <a href="#">資料管理 ▾</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/articles">商品主檔</a></li>
+                        <li><a href="/final-result">最終結果</a></li>
+                        <li><a href="/ideal-stock">理想庫存</a></li>
+                        <li><a href="/reference/moq">最低訂購量(MOQ)</a></li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#">計算執行 ▾</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/calculate/check-moq">1. MOQ檢查</a></li>
+                        <li><a href="/calculate/apply-ideal-stock">2. 套用理想庫存</a></li>
+                        <li><a href="/calculate/problem-transactions">3. 問題交易</a></li>
+                        <li><a href="/calculate/type-conversions">4. 類型轉換</a></li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#">輸出報表 ▾</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/output/rp-list">RP清單</a></li>
+                        <li><a href="/output/mss-list">MSS清單</a></li>
+                        <li><a href="/output/clear-all">清除全部</a></li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#">參考資料 ▾</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/reference/shop-class">店舖分類</a></li>
+                        <li><a href="/reference/vendor-schedule">供應商排程</a></li>
+                        <li><a href="/reference/warehouse-calendar">倉庫日曆</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <main class="container">
+    {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    {% if message %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endif %}
+    {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+        <div class="container"><p>RP Parameter Calculation System &copy; 2026</p></div>
+    </footer>
+</body>
+</html>
