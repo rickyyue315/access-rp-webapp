@@ -1,4 +1,4 @@
-import os, csv, io, sqlite3
+﻿import os, csv, io, sqlite3
 from flask import Flask, render_template, request, redirect, url_for, send_file, Response
 from database import get_db
 from calculation_service import *
@@ -15,6 +15,10 @@ def index():
     except Exception as e:
         return render_template('index.html', error=str(e), data={})
 
+
+@app.route('/tutorial')
+def tutorial():
+    return render_template('tutorial.html')
 @app.route('/articles')
 def articles():
     page = int(request.args.get('page', 1))
