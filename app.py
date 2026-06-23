@@ -45,10 +45,11 @@ def import_articles():
     with open(path, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            db.execute("""INSERT OR REPLACE INTO article_master (article, article_description, brand, mc, mc_description, article_category, article_type, status, first_sales_date, season_category, available_to, launch_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            db.execute("""INSERT OR REPLACE INTO article_master (article, article_description, brand, mc, mc_description, article_category, article_type, status, first_sales_date, season_category, available_to, launch_date, major_vendor_sap, supplu_source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (row.get('article',''), row.get('article_description',''), row.get('brand',''), row.get('mc',''), row.get('mc_description',''),
                  row.get('article_category',0), row.get('article_type',''), row.get('status',''), row.get('first_sales_date',''),
-                 row.get('season_category',0), row.get('available_to',''), row.get('launch_date','')))
+                 row.get('season_category',0), row.get('available_to',''), row.get('launch_date',''),
+                 row.get('major_vendor_sap',''), row.get('supplu_source', 1)))
             count += 1
     db.commit()
     return redirect(url_for('articles'))
@@ -145,6 +146,87 @@ def calc_type_conversions():
         return render_template('calculations.html', data={'step_name': '類型轉換', 'result_message': msg, 'result': result})
     except Exception as e:
         return render_template('calculations.html', data={'step_name': '類型轉換', 'result_message': f'錯誤: {str(e)}', 'result': {}})
+
+@app.route('/calculate/step1-clear-all')
+def calc_step1_clear_all():
+    try:
+        result = run_step1_clear_all()
+        return render_template('calculations.html', data={'step_name': 'Step 1: 清除全部資料', 'result_message': '所有資料表已清除', 'result': result})
+    except Exception as e:
+        return render_template('calculations.html', data={'step_name': 'Step 1: 清除全部資料', 'result_message': f'錯誤: {str(e)}', 'result': {}})
+
+@app.route('/calculate/step2-generate-result')
+def calc_step2_generate_result():
+    try:
+        result = run_step2_generate_result()
+        d = result.get('detail', {})
+        msg = f'RF→ND 參數更新: {d.get("rf_to_nd_params_updated", 0)} 筆, ND→RF 參數更新: {d.get("nd_to_rf_params_updated", 0)} 筆'
+        return render_template('calculations.html', data={'step_name': 'Step 2: 產生計算結果', 'result_message': msg, 'result': result})
+    except Exception as e:
+        return render_template('calculations.html', data={'step_name': 'Step 2: 產生計算結果', 'result_message': f'錯誤: {str(e)}', 'result': {}})
+
+@app.route('/calculate/step3-apply-ideal-stock')
+def calc_step3_apply_ideal_stock():
+    try:
+        result = run_step3_apply_ideal_stock()
+        return render_template('calculations.html', data={'step_name': 'Step 3: 套用理想庫存', 'result_message': f'已更新 {result.get("updated", 0)} 筆記錄', 'result': result})
+    except Exception as e:
+        return render_template('calculations.html', data={'step_name': 'Step 3: 套用理想庫存', 'result_message': f'錯誤: {str(e)}', 'result': {}})
+
+@app.route('/calculate/full-workflow')
+def calc_full_workflow():
+    try:
+        result = run_full_workflow()
+        return render_template('calculations.html', data={'step_name': '完整工作流程 (Step 1→2→3)', 'result_message': '三步驟已完成', 'result': result})
+    except Exception as e:
+        return render_template('calculations.html', data={'step_name': '完整工作流程', 'result_message': f'錯誤: {str(e)}', 'result': {}})
+
+@app.route('/output/generate-rp-list')
+def output_generate_rp_list():
+    try:
+        result = generate_rp_list()
+        return render_template('calculations.html', data={'step_name': '產生 RP 清單', 'result_message': f'已產生 {result["generated"]} 筆記錄', 'result': result})
+    except Exception as e:
+        return render_template('calculations.html', data={'step_name': '產生 RP 清單', 'result_message': f'錯誤: {str(e)}', 'result': {}})
+
+@app.route('/output/generate-mss-list')
+def output_generate_mss_list():
+    try:
+        result = generate_mss_list()
+        return render_template('calculations.html', data={'step_name': '產生 MSS 清單', 'result_message': f'已產生 {result["generated"]} 筆記錄', 'result': result})
+    except Exception as e:
+        return render_template('calculations.html', data={'step_name': '產生 MSS 清單', 'result_message': f'錯誤: {str(e)}', 'result': {}})
+
+@app.route('/reference/mc-stock-ref', methods=['GET', 'POST'])
+def mc_stock_ref():
+    db = get_db()
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if file:
+            path = os.path.join(app.config['UPLOAD_FOLDER'], 'mc_stock_ref_import.csv')
+            file.save(path)
+            with open(path, 'r', encoding='utf-8-sig') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    db.execute("INSERT OR REPLACE INTO mc_stock_ref (shop, mc, a_qty, b_qty, c_qty) VALUES (?,?,?,?,?)",
+                               (row.get('shop',''), row.get('mc',0), row.get('a_qty',0), row.get('b_qty',0), row.get('c_qty',0)))
+            db.commit()
+            return redirect(url_for('mc_stock_ref'))
+        shop = request.form.get('shop', '')
+        mc = request.form.get('mc', 0)
+        a_qty = request.form.get('a_qty', 0)
+        b_qty = request.form.get('b_qty', 0)
+        c_qty = request.form.get('c_qty', 0)
+        db.execute("INSERT OR REPLACE INTO mc_stock_ref (shop, mc, a_qty, b_qty, c_qty) VALUES (?,?,?,?,?)",
+                   (shop, mc, a_qty, b_qty, c_qty))
+        db.commit()
+        return redirect(url_for('mc_stock_ref'))
+    rows = db.execute("SELECT * FROM mc_stock_ref ORDER BY shop, mc LIMIT 200").fetchall()
+    return render_template('reference.html', data={
+        'page_title': 'MC 庫存參考', 'columns': ['shop', 'mc', 'a_qty', 'b_qty', 'c_qty'],
+        'rows': [dict(r) for r in rows],
+        'fields': [{'name': 'shop', 'label': 'Shop'}, {'name': 'mc', 'label': 'MC'}, {'name': 'a_qty', 'label': 'A Qty'}, {'name': 'b_qty', 'label': 'B Qty'}, {'name': 'c_qty', 'label': 'C Qty'}]
+    })
 
 @app.route('/reference/shop-class', methods=['GET', 'POST'])
 def shop_class():

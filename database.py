@@ -20,6 +20,7 @@ def init_schema(conn):
             mc TEXT, mc_description TEXT, article_category INTEGER,
             article_type TEXT, status TEXT, first_sales_date TEXT,
             season_category INTEGER, available_to TEXT, launch_date TEXT,
+            major_vendor_sap TEXT, supplu_source INTEGER DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )""",
         """CREATE TABLE IF NOT EXISTS shop_class (
@@ -193,6 +194,11 @@ def init_schema(conn):
             a_qty INTEGER, b_qty INTEGER, c_qty INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )""",
+        """CREATE TABLE IF NOT EXISTS mc_stock_ref (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            shop TEXT NOT NULL, mc INTEGER DEFAULT 0,
+            a_qty INTEGER DEFAULT 0, b_qty INTEGER DEFAULT 0, c_qty INTEGER DEFAULT 0
+        )""",
         """CREATE TABLE IF NOT EXISTS mss_list (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             site TEXT, article TEXT, article_description TEXT, brand TEXT,
@@ -238,8 +244,23 @@ def init_schema(conn):
         "CREATE INDEX IF NOT EXISTS idx_fr_site_article ON final_result(site, article)",
         "CREATE INDEX IF NOT EXISTS idx_is_site_article ON ideal_stock(site, article)",
         "CREATE INDEX IF NOT EXISTS idx_sf_sku_loc ON sku_3m_sales_f4(sku, location_code)",
+        "CREATE INDEX IF NOT EXISTS idx_msr_shop_mc ON mc_stock_ref(shop, mc)",
+
     ]
     for idx in indexes:
         conn.execute(idx)
+
+    migrations = [
+        "ALTER TABLE article_master ADD COLUMN major_vendor_sap TEXT DEFAULT ''",
+        "ALTER TABLE article_master ADD COLUMN supplu_source INTEGER DEFAULT 1",
+        "ALTER TABLE final_result ADD COLUMN moq_checked INTEGER DEFAULT 0",
+        "ALTER TABLE final_result ADD COLUMN ideal_stock_applied INTEGER DEFAULT 0",
+    ]
+    for m in migrations:
+        try:
+            conn.execute(m)
+        except Exception:
+            pass
+
     conn.commit()
     print("Database schema initialized")
