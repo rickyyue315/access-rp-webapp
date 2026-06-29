@@ -22,21 +22,25 @@
         padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
   h2{margin:0 0 14px;font-size:1.15rem;color:var(--brand)}
   .drop{border:2px dashed #c7d2e0;border-radius:12px;padding:30px;text-align:center;
-        background:#fafbff;transition:.15s;cursor:pointer}
+        background:#fafbff;transition:.15s}
   .drop:hover,.drop.drag{border-color:var(--brand2);background:#eef4ff}
-  .drop .big{font-size:2.4rem}
+  .drop .big{font-size:2.4rem;line-height:1}
   .drop p{margin:8px 0 0;color:var(--muted)}
-  input[type=file]{display:none}
+  .drop .hint{font-size:.8rem}
+  .pick{display:inline-block;width:auto;margin:14px auto 0;border:none;border-radius:8px;
+        padding:9px 22px;font-size:.95rem;font-weight:600;color:#fff;cursor:pointer;
+        background:var(--brand);box-shadow:none}
+  .pick:hover{filter:brightness(1.05);box-shadow:none}
   .file-name{margin-top:12px;font-size:.95rem;color:var(--brand);word-break:break-all}
   .opt{margin-top:16px}
   .opt summary{cursor:pointer;font-weight:600;color:var(--muted);font-size:.92rem}
   .opt small{color:var(--muted)}
-  button{margin-top:20px;width:100%;border:none;border-radius:10px;padding:15px;
+  button[type=submit]{margin-top:20px;width:100%;border:none;border-radius:10px;padding:15px;
          font-size:1.05rem;font-weight:700;color:#fff;cursor:pointer;
          background:linear-gradient(135deg,var(--brand),var(--brand2));
          box-shadow:0 4px 12px rgba(48,84,150,.3);transition:.15s}
-  button:hover{filter:brightness(1.05)}
-  button:disabled{opacity:.55;cursor:not-allowed}
+  button[type=submit]:hover{filter:brightness(1.05)}
+  button[type=submit]:disabled{opacity:.55;cursor:not-allowed}
   .stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
   .stat{flex:1;min-width:120px;background:#f8fafc;border:1px solid var(--line);
         border-radius:10px;padding:12px;text-align:center}
@@ -66,12 +70,13 @@
   <div class="card">
     <h2>① 上傳輸入檔</h2>
     <form method="post" action="{{ url_for('process') }}" enctype="multipart/form-data" id="form">
-      <label class="drop" id="drop" for="file">
+      <div class="drop" id="drop">
         <div class="big">📄</div>
-        <p>按這裡選擇，或將檔案拖曳到此處</p>
-        <p style="font-size:.8rem">支援 .txt / .csv / .xls / .xlsx</p>
+        <p>按下方按鈕選擇，或將檔案拖曳到此處</p>
+        <p class="hint">支援 .txt / .csv / .xls / .xlsx</p>
+        <button type="button" class="pick" id="pick">選擇檔案</button>
         <div class="file-name" id="fname"></div>
-      </label>
+      </div>
       <input type="file" id="file" name="file" accept=".txt,.csv,.xls,.xlsx" required>
 
       <details class="opt">
@@ -108,7 +113,12 @@
 </div>
 <script>
 const file=document.getElementById('file'),fname=document.getElementById('fname');
-const drop=document.getElementById('drop'),btn=document.getElementById('btn'),form=document.getElementById('form');
+const drop=document.getElementById('drop'),pick=document.getElementById('pick'),
+      btn=document.getElementById('btn'),form=document.getElementById('form');
+function chooseFile(){file.click();}
+// 點擊拖放區或「選擇檔案」按鈕都會開啟檔案選擇器
+drop.addEventListener('click',ev=>{if(ev.target===pick)return;chooseFile();});
+pick.addEventListener('click',ev=>{ev.stopPropagation();chooseFile();});
 file.addEventListener('change',()=>{fname.textContent=file.files[0]?file.files[0].name:'';});
 ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag');}));
 ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag');}));
