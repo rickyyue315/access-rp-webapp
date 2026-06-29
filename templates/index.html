@@ -1,21 +1,119 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>補貨參數計算系統 - 儀表板</h1>
-<div class="stats-grid">
-    <div class="stat-card"><h3>商品總數</h3><p class="stat-number">{{ data.total_articles }}</p></div>
-    <div class="stat-card"><h3>問題交易</h3><p class="stat-number">{{ data.problem_count }}</p></div>
-    <div class="stat-card"><h3>MOQ已檢查</h3><p class="stat-number">{{ data.moq_checked }}</p></div>
-    <div class="stat-card"><h3>理想庫存已套用</h3><p class="stat-number">{{ data.ideal_stock_applied }}</p></div>
-    <div class="stat-card"><h3>店舖數量</h3><p class="stat-number">{{ data.shop_count }}</p></div>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RP Maintenance 參數轉換</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+    --brand:#305496; --brand2:#3b82f6; --ok:#16a34a; --err:#dc2626; --line:#e5e7eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI","Microsoft JhengHei",system-ui,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:880px;margin:0 auto;padding:32px 20px 64px}
+  header.hero{background:linear-gradient(135deg,var(--brand),var(--brand2));
+              color:#fff;border-radius:16px;padding:28px 28px;margin-bottom:24px;
+              box-shadow:0 8px 24px rgba(48,84,150,.25)}
+  header.hero h1{margin:0 0 6px;font-size:1.6rem}
+  header.hero p{margin:0;opacity:.92}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  h2{margin:0 0 14px;font-size:1.15rem;color:var(--brand)}
+  .drop{border:2px dashed #c7d2e0;border-radius:12px;padding:30px;text-align:center;
+        background:#fafbff;transition:.15s;cursor:pointer}
+  .drop:hover,.drop.drag{border-color:var(--brand2);background:#eef4ff}
+  .drop .big{font-size:2.4rem}
+  .drop p{margin:8px 0 0;color:var(--muted)}
+  input[type=file]{display:none}
+  .file-name{margin-top:12px;font-size:.95rem;color:var(--brand);word-break:break-all}
+  .opt{margin-top:16px}
+  .opt summary{cursor:pointer;font-weight:600;color:var(--muted);font-size:.92rem}
+  .opt small{color:var(--muted)}
+  button{margin-top:20px;width:100%;border:none;border-radius:10px;padding:15px;
+         font-size:1.05rem;font-weight:700;color:#fff;cursor:pointer;
+         background:linear-gradient(135deg,var(--brand),var(--brand2));
+         box-shadow:0 4px 12px rgba(48,84,150,.3);transition:.15s}
+  button:hover{filter:brightness(1.05)}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  .stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+  .stat{flex:1;min-width:120px;background:#f8fafc;border:1px solid var(--line);
+        border-radius:10px;padding:12px;text-align:center}
+  .stat b{display:block;font-size:1.4rem;color:var(--brand)}
+  .stat span{font-size:.78rem;color:var(--muted)}
+  .flash{padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:.92rem}
+  .flash.error{background:#fef2f2;color:var(--err);border:1px solid #fecaca}
+  .flash.warn{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+  ol.steps{padding-left:20px;color:var(--muted)}
+  ol.steps b{color:var(--ink)}
+  footer{text-align:center;color:var(--muted);font-size:.82rem;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>RP Maintenance 參數轉換</h1>
+    <p>上傳 <b>RP_Maintenance (input)</b>，自動套用 Access MDB 計算邏輯，下載 <b>RP_Maintenance (output)</b>。</p>
+  </header>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card">
+    <h2>① 上傳輸入檔</h2>
+    <form method="post" action="{{ url_for('process') }}" enctype="multipart/form-data" id="form">
+      <label class="drop" id="drop" for="file">
+        <div class="big">📄</div>
+        <p>按這裡選擇，或將檔案拖曳到此處</p>
+        <p style="font-size:.8rem">支援 .txt / .csv / .xls / .xlsx</p>
+        <div class="file-name" id="fname"></div>
+      </label>
+      <input type="file" id="file" name="file" accept=".txt,.csv,.xls,.xlsx" required>
+
+      <details class="opt">
+        <summary>進階：ABC 覆寫檔（選用）</summary>
+        <p><small>若需套用 SKU_3M_SALES_F4 的 ABC_TOTAL 覆寫，可上傳欄位為
+          <b>Site, Article, ABC_TOTAL</b> 的 csv/xlsx。</small></p>
+        <input type="file" name="abc_file" accept=".txt,.csv,.xls,.xlsx">
+      </details>
+
+      <button type="submit" id="btn">② 開始轉換並下載結果 (Excel)</button>
+    </form>
+    <div class="stats">
+      <div class="stat"><b>{{ sites }}</b><span>內建店鋪 (Warehouse Calendar)</span></div>
+      <div class="stat"><b>{{ '{:,}'.format(mss) }}</b><span>MC 安全庫存 (MSS List)</span></div>
+      <div class="stat"><b>{{ '{:,}'.format(moq) }}</b><span>MOQ 記錄 (D001)</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>運作說明</h2>
+    <ol class="steps">
+      <li><b>上傳</b>從 SAP 匯出的 RP_Maintenance (input) 檔案。</li>
+      <li>系統依店鋳查詢 <b>Warehouse Calendar</b> 填入 New Planning / Delivery Cycle。</li>
+      <li>依店鋳查詢 <b>Target Coverage</b> 對照表填入 New Traget Coverage。</li>
+      <li>依店鋳 + MC 查詢 <b>MSS List</b> 填入 A / B / C QTY。</li>
+      <li>設定 New Delivery Days=1、Supply Source=2、Forecast Model=G、Periods=2/5/52 等標準參數。</li>
+      <li><b>下載</b>格式與原 Access 完全一致的 RP_Maintenance (output).xlsx。</li>
+    </ol>
+  </div>
+
+  <footer>
+    RP Maintenance Converter · 移植自 Access MDB「Upload Old Article RP Parameter (ideal stock added)」· Zeabur 部署
+  </footer>
 </div>
-
-<h2>RP類型統計</h2>
-<table class="table"><tr><th>RP類型</th><th>數量</th></tr>
-{% for r in data.by_rp_type %}<tr><td>{{ r.rp_type }}</td><td>{{ r.c }}</td></tr>{% endfor %}
-</table>
-
-<h2>新RP類型統計</h2>
-<table class="table"><tr><th>新RP類型</th><th>數量</th></tr>
-{% for r in data.by_new_rp_type %}<tr><td>{{ r.new_rp_type }}</td><td>{{ r.c }}</td></tr>{% endfor %}
-</table>
-{% endblock %}
+<script>
+const file=document.getElementById('file'),fname=document.getElementById('fname');
+const drop=document.getElementById('drop'),btn=document.getElementById('btn'),form=document.getElementById('form');
+file.addEventListener('change',()=>{fname.textContent=file.files[0]?file.files[0].name:'';});
+['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length){file.files=ev.dataTransfer.files;fname.textContent=file.files[0].name;}});
+form.addEventListener('submit',()=>{btn.disabled=true;btn.textContent='轉換中…請稍候';});
+</script>
+</body>
+</html>

@@ -1,9 +1,7 @@
 __pycache__/
 *.pyc
-data/csv_exports/
-data/*.db-shm
-data/*.db-wal
-uploads/*
-!uploads/.gitkeep
-.DS_Store
-tools/export_mdb_to_csv.py
+.venv/
+venv/
+.env
+uploads/
+*.log
